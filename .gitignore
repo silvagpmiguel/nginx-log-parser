@@ -1,2 +1,2 @@
 *.log
-nginx-log-parser
+./nginx-log-parser
