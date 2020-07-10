@@ -144,6 +144,11 @@ func main() {
 	dayFlag := false
 	day := ""
 
+	if argsLen == 1 {
+		fmt.Println("Error. No arguments found\nWrite \"./nginx-log-parser -h\" to display the help")
+		return
+	}
+
 	for i := 1; i < argsLen; i++ {
 		switch os.Args[i] {
 		case "-h":
@@ -174,14 +179,10 @@ func main() {
 				filepath = os.Args[i]
 			} else {
 				fmt.Println("Error. Wrong arguments")
+				fmt.Println("Write \"./nginx-log-parser -h\" to display the help")
 				return
 			}
 		}
-	}
-
-	if filepath == "" {
-		fmt.Println("Error: You must give a valid .log file")
-		return
 	}
 
 	file, err := os.Open(filepath)
