@@ -93,19 +93,16 @@ func readLog(file *os.File, newFlag bool, oldFlag bool, botFlag bool, detailedFl
 		return str, nil
 	}
 	if botFlag {
-		str += fmt.Sprintf("Found %d bots who accessed the site %s\n", bots, onDay)
+		str += fmt.Sprintf("Found %d bots which accessed the site %s\n", bots, onDay)
 	}
 	if newFlag {
-		str += fmt.Sprintf("Found %d new users who accessed the site %s\n", totalViews, onDay)
+		str += fmt.Sprintf("Found %d new users who accessed the site %s\n", newcomers, onDay)
 	}
 	if oldFlag {
 		str += fmt.Sprintf("Found %d users who already had accessed the site %s\n", existingUsers, onDay)
 	}
-	if noFlags {
+	if noFlags || dayFlag {
 		str += fmt.Sprintf("Found %d users who accessed the site %s\n", totalViews, onDay)
-	}
-	if dayFlag {
-		str += fmt.Sprintf("Found %d users who accessed the site on %s\n", totalViews, day)
 	}
 
 	return str, nil
@@ -118,17 +115,17 @@ func printCommandsInfo() {
 		"Reads information from a nginx access log located at $LOGPATH\n\n",
 		"Provide LOGPATH as last argument\n\n",
 		"OPTIONS\n",
-		"\t-bots,\t\tDisplay the number of bots who accessed the website\n",
-		"\t-day,\t\tDisplay the number of users who accessed the website in a day <dd/mm/yyyy>\n",
+		"\t-bots,\t\tDisplay the number of bots which accessed the website\n",
+		"\t-day,\t\tDisplay the number of users who accessed the website on <dd/mm/yyyy>\n",
 		"\t-detailed,\tDisplay more detailed information\n",
 		"\t-new,\t\tDisplay the number of new users who accessed the website\n",
 		"\t-old,\t\tDisplay the number of users who had already accessed the website\n",
 		"\t-verbose,\tDisplay information about each line of the log\n",
 		"\t-h,\t\tDisplay this help and exit\n",
 		"EXAMPLE\n",
-		"\t./nginx-log-parser $LOGPATH,\tRead access log at $LOGPATH and display the total number of users that accessed the website",
-		"\t./nginx-log-parser -day 09/07/2020 $LOGPATH,\tRead access log at $LOGPATH and display the number of users that accessed the website at that day",
-		"\t./nginx-log-parser -day 09/07/2020 $LOGPATH,\tRead access log at $LOGPATH and display the number of users that accessed the website at that day",
+		"\t./nginx-log-parser $LOGPATH,\t\t\t\tRead access log at $LOGPATH and display the total number of users that accessed the website\n",
+		"\t./nginx-log-parser -day 09/07/2020 $LOGPATH,\t\tRead access log at $LOGPATH and display the users that accessed the website on that day\n",
+		"\t./nginx-log-parser -detailed -day 09/07/2020 $LOGPATH,\tRead access log at $LOGPATH and display more detailed information on that day\n",
 	)
 }
 
