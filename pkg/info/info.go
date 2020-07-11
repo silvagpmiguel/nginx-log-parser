@@ -79,7 +79,7 @@ func GetInfoAtDay(infoMap InfoMap, str string, day string) (Info, error) {
 	return info, nil
 }
 
-// GetAllInfo parses all contents of a log
+// GetAllInfo parses all contents of a given log
 func GetAllInfo(allMap map[string]Info, str string) (Info, error) {
 	none := Info{IP: "0", IsBot: false, IsUser: false, IsClientError: false}
 	aux := strings.SplitN(str, " ", 2)
