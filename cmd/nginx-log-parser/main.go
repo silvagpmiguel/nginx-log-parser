@@ -11,6 +11,8 @@ import (
 )
 
 func getResultsFromDay(file *os.File, botFlag bool, detailedFlag bool, verboseFlag bool, dayFlag bool, day string) (string, error) {
+	fmt.Println("ALL RESULTS FROM DAY")
+
 	infoMap := info.InfoMap{
 		All: make(map[string]info.Info),
 		Day: make(map[string]info.Info),
@@ -27,7 +29,7 @@ func getResultsFromDay(file *os.File, botFlag bool, detailedFlag bool, verboseFl
 	onDay := "on " + day
 
 	for scanner.Scan() {
-		_, err := info.GetLogInfo(infoMap, scanner.Text(), day)
+		_, err := info.GetInfoAtDay(infoMap, scanner.Text(), day)
 		if err != nil {
 			return "", err
 		}
@@ -91,9 +93,7 @@ func getResultsFromDay(file *os.File, botFlag bool, detailedFlag bool, verboseFl
 }
 
 func getAllResults(file *os.File, botFlag bool, detailedFlag bool, verboseFlag bool, dayFlag bool, day string) (string, error) {
-	infoMap := info.InfoMap{
-		All: make(map[string]info.Info),
-	}
+	infoMap := make(map[string]info.Info)
 	scanner := bufio.NewScanner(file)
 	bots := 0
 	totalAccesses := 0
@@ -103,8 +103,9 @@ func getAllResults(file *os.File, botFlag bool, detailedFlag bool, verboseFlag b
 	noFlags := !botFlag && !dayFlag && !detailedFlag
 	line := ""
 
+	fmt.Println("ALL RESULTS")
 	for scanner.Scan() {
-		v, err := info.GetLogInfo(infoMap, scanner.Text(), day)
+		v, err := info.GetAllInfo(infoMap, scanner.Text())
 		if err != nil {
 			return "", err
 		}
@@ -166,15 +167,13 @@ func readLog(file *os.File, botFlag bool, detailedFlag bool, verboseFlag bool, d
 			return str, err
 		}
 		return str, nil
-
-	} else {
-		str, err := getAllResults(file, botFlag, detailedFlag, verboseFlag, dayFlag, day)
-		if err != nil {
-			return str, err
-		}
-		return str, nil
 	}
 
+	str, err := getAllResults(file, botFlag, detailedFlag, verboseFlag, dayFlag, day)
+	if err != nil {
+		return str, err
+	}
+	return str, nil
 }
 
 func printCommandsInfo() {

@@ -31,23 +31,6 @@ type InfoMap struct {
 	Day map[string]Info
 }
 
-// GetLogInfo parses all contents of a given log or just at a given day
-func GetLogInfo(infoMap InfoMap, str string, day string) (Info, error) {
-	if day != "" {
-		info, err := GetInfoAtDay(infoMap, str, day)
-		if err != nil {
-			return info, err
-		}
-		return info, nil
-	} else {
-		info, err := GetAllInfo(infoMap.All, str)
-		if err != nil {
-			return info, err
-		}
-		return info, nil
-	}
-}
-
 // GetInfoAtDay parses the contents of a given log at a given day
 func GetInfoAtDay(infoMap InfoMap, str string, day string) (Info, error) {
 	none := Info{IP: "0", IsBot: false, IsUser: false, IsClientError: false}
@@ -102,12 +85,12 @@ func GetAllInfo(allMap map[string]Info, str string) (Info, error) {
 	aux := strings.SplitN(str, " ", 2)
 	ip := aux[0]
 	_, ok := allMap[ip]
-	maybeDate := DateRegex.FindString(str)
 
 	if ok {
 		return none, nil
 	}
 
+	maybeDate := DateRegex.FindString(str)
 	info, err := CreateInfo(ip, aux[1], maybeDate)
 
 	if err != nil {
