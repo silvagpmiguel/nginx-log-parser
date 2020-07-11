@@ -31,80 +31,126 @@ type InfoMap struct {
 	Day map[string]Info
 }
 
-// GetLogInfo parses the content of the log
+// GetLogInfo parses all contents of a given log or just at a given day
 func GetLogInfo(infoMap InfoMap, str string, day string) (Info, error) {
-	info := Info{IP: "0", IsBot: false, IsUser: false, IsClientError: false}
-	aux := strings.SplitN(str, " ", 2)
-	ip := aux[0]
-	botFlag := false
-	clientError := false
-	layout := ""
-	timeDay := time.Now()
-	d := 0
-	m := 0
-	y := 0
-
-	maybeDate := DateRegex.FindString(aux[1])
-
-	if maybeDate != "" {
-		date, err := CreateDate(maybeDate)
-
+	if day != "" {
+		info, err := GetInfoAtDay(infoMap, str, day)
 		if err != nil {
 			return info, err
 		}
+		return info, nil
+	} else {
+		info, err := GetAllInfo(infoMap.All, str)
+		if err != nil {
+			return info, err
+		}
+		return info, nil
+	}
+}
 
-		botFlag = strings.Contains(aux[1], "wp-admin")
-		clientError = strings.Contains(aux[1], "HTTP/1.1\" 4")
-		userFlag := strings.Contains(aux[1], "assets")
+// GetInfoAtDay parses the contents of a given log at a given day
+func GetInfoAtDay(infoMap InfoMap, str string, day string) (Info, error) {
+	none := Info{IP: "0", IsBot: false, IsUser: false, IsClientError: false}
+	aux := strings.SplitN(str, " ", 2)
+	ip := aux[0]
+	layout := "02/01/2006"
+	timeDay, _ := time.Parse(layout, day)
+	d := timeDay.Day()
+	m := int(timeDay.Month())
+	y := timeDay.Year()
+	maybeDate := DateRegex.FindString(str)
 
-		if !botFlag && !userFlag && !clientError {
-			return info, nil
+	info, err := CreateInfo(ip, aux[1], maybeDate)
+
+	if err != nil {
+		return none, err
+	}
+
+	if info.Date.Day() < d && m <= int(info.Date.Month()) && y <= info.Date.Year() {
+		_, ok := infoMap.All[ip]
+
+		if ok {
+			return none, nil
 		}
 
-		info = Info{
-			IP:            ip,
-			Date:          date,
-			IsBot:         botFlag,
-			IsUser:        userFlag,
-			IsClientError: clientError,
+		if info.IP == "0" {
+			return none, nil
 		}
 
-		if day != "" {
-			layout = "02/01/2006"
-			timeDay, _ = time.Parse(layout, day)
-			d = timeDay.Day()
-			m = int(timeDay.Month())
-			y = timeDay.Year()
+		infoMap.All[ip] = info
 
-			if date.Day() < d && m <= int(date.Month()) && y <= date.Year() {
-				_, ok := infoMap.All[ip]
+	} else if info.Date.Day() == d && m == int(info.Date.Month()) && y == info.Date.Year() {
+		_, ok := infoMap.Day[ip]
 
-				if ok {
-					return info, nil
-				}
-
-				infoMap.All[ip] = info
-			} else if date.Day() == d && m == int(date.Month()) && y == date.Year() {
-				_, ok := infoMap.Day[ip]
-
-				if ok {
-					return info, nil
-				}
-
-				infoMap.Day[ip] = info
-			} else {
-				return info, nil
-			}
+		if ok {
+			return none, nil
 		}
+
+		if info.IP == "0" {
+			return none, nil
+		}
+
+		infoMap.Day[ip] = info
 	}
 
 	return info, nil
 }
 
-// CreateDate returns a time.Time value from "02/Jan/2006:15:04:05 -0700" as layout
-func CreateDate(str string) (time.Time, error) {
+// GetAllInfo parses all contents of a log
+func GetAllInfo(allMap map[string]Info, str string) (Info, error) {
+	none := Info{IP: "0", IsBot: false, IsUser: false, IsClientError: false}
+	aux := strings.SplitN(str, " ", 2)
+	ip := aux[0]
+	_, ok := allMap[ip]
+	maybeDate := DateRegex.FindString(str)
+
+	if ok {
+		return none, nil
+	}
+
+	info, err := CreateInfo(ip, aux[1], maybeDate)
+
+	if err != nil {
+		return none, err
+	}
+
+	if info.IP == "0" {
+		return none, nil
+	}
+
+	allMap[ip] = info
+
+	return info, nil
+}
+
+// CreateInfo returns a Info type or error
+func CreateInfo(ip string, str string, maybeDate string) (Info, error) {
+	info := Info{IP: "0", IsBot: false, IsUser: false, IsClientError: false}
 	layout := "[02/Jan/2006:15:04:05 -0700]"
-	return time.Parse(layout, str)
+
+	date, err := time.Parse(layout, maybeDate)
+
+	if err != nil {
+		return info, err
+	}
+
+	botFlag := strings.Contains(str, "wp-admin")
+	clientError := strings.Contains(str, "HTTP/1.1\" 4")
+	userFlag := strings.Contains(str, "assets")
+
+	if !botFlag && !userFlag && !clientError {
+		return info, nil
+	}
+
+	info = Info{
+		IP:            ip,
+		Date:          date,
+		IsBot:         botFlag,
+		IsUser:        userFlag,
+		IsClientError: clientError,
+	}
+
+	return info, nil
 }
 
 func (i Info) String() string {
