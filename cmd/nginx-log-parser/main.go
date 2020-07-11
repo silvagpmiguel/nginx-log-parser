@@ -6,106 +6,175 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/silvagpmiguel/nginx-log-parser/pkg/info"
 )
 
-func readLog(file *os.File, newFlag bool, oldFlag bool, botFlag bool, detailedFlag bool, verboseFlag bool, dayFlag bool, day string) (string, error) {
-	infoMap := make(info.InfoMap)
+func getResultsFromDay(file *os.File, botFlag bool, detailedFlag bool, verboseFlag bool, dayFlag bool, day string) (string, error) {
+	infoMap := info.InfoMap{
+		All: make(map[string]info.Info),
+		Day: make(map[string]info.Info),
+	}
 	scanner := bufio.NewScanner(file)
 	bots := 0
-	totalViews := 0
-	newcomers := 0
-	existingUsers := 0
+	totalAccesses := 0
+	users := 0
 	clientErrors := 0
 	str := ""
-	noFlags := !botFlag && !dayFlag && !newFlag && !oldFlag && !detailedFlag
-	onDay := ""
-
-	if dayFlag {
-		onDay = "on " + day
-	}
+	existingUsers := 0
+	noFlags := !botFlag && !dayFlag && !detailedFlag
+	line := ""
+	onDay := "on " + day
 
 	for scanner.Scan() {
-		info, err := info.GetLogInfo(infoMap, scanner.Text())
+		_, err := info.GetLogInfo(infoMap, scanner.Text(), day)
 		if err != nil {
 			return "", err
 		}
+	}
 
-		if info.IP == "0" {
+	for _, v := range infoMap.Day {
+		if v.IP == "0" {
 			continue
 		}
 
-		if dayFlag {
-			layout := "02/01/2006:15:04:05 -0700"
-			startDay, _ := time.Parse(layout, day+":00:00:00 +0000")
-			endDay, _ := time.Parse(layout, day+":23:59:59 +0000")
-
-			if !(info.Date.After(startDay) && info.Date.Before(endDay)) {
-				continue
-			}
-		}
-
-		if info.IsBot {
+		if v.IsBot {
 			bots++
-			if verboseFlag && (botFlag || detailedFlag) {
-				fmt.Println(info.String())
-			}
-		} else {
-			if info.IsNewUser {
-				newcomers++
-				if verboseFlag && (newFlag || detailedFlag || dayFlag) {
-					fmt.Println(info.String())
-				}
-			} else {
-				if info.IsClientError {
-					clientErrors++
-				} else {
-					existingUsers++
-					if verboseFlag && (oldFlag || detailedFlag || dayFlag) {
-						fmt.Println(info.String())
-					}
-				}
-			}
-			totalViews++
-			if verboseFlag && (noFlags) {
-				fmt.Println(info.String())
+			line = v.String()
+			if verboseFlag && (botFlag || detailedFlag) && line != "" {
+				fmt.Println(line)
 			}
 		}
+		if v.IsUser {
+			line = v.String()
+			if verboseFlag && (noFlags || detailedFlag || dayFlag) && line != "" {
+				fmt.Println(line)
+			}
+			_, ok := infoMap.All[v.IP]
+			if ok {
+				existingUsers++
+			} else {
+				users++
+			}
+		}
+		if v.IsClientError {
+			clientErrors++
+			line = v.String()
+			if verboseFlag && (detailedFlag || dayFlag) && line != "" {
+				fmt.Println(line)
+			}
+		}
+		totalAccesses++
 	}
 
 	if verboseFlag {
 		str += "\n"
 	}
 
-	if totalViews == 0 {
-		return str, fmt.Errorf("Invalid log fields")
-	}
-
 	if detailedFlag {
 		str += fmt.Sprintf("Detailed Information %s\n", onDay)
-		str += fmt.Sprintf("Number of bots: %d\n", bots)
-		str += fmt.Sprintf("Number of new users who accessed the site: %d\n", newcomers)
-		str += fmt.Sprintf("Number of users who already had accessed the site: %d\n", existingUsers)
-		str += fmt.Sprintf("Number of user error requests: %d\n", clientErrors)
-		str += fmt.Sprintf("Total number of user views: %d\n", totalViews)
+		str += fmt.Sprintf("Number of unique bots: %d\n", bots)
+		str += fmt.Sprintf("Number of new unique users: %d\n", users)
+		str += fmt.Sprintf("Number of unique users who already had accessed the site: %d\n", existingUsers)
+		str += fmt.Sprintf("Number of unique user error requests: %d\n", clientErrors)
+		str += fmt.Sprintf("Total number of unique accesses: %d\n", totalAccesses)
 		return str, nil
 	}
 	if botFlag {
-		str += fmt.Sprintf("Found %d bots which accessed the site %s\n", bots, onDay)
-	}
-	if newFlag {
-		str += fmt.Sprintf("Found %d new users who accessed the site %s\n", newcomers, onDay)
-	}
-	if oldFlag {
-		str += fmt.Sprintf("Found %d users who already had accessed the site %s\n", existingUsers, onDay)
+		str += fmt.Sprintf("Found %d unique bots which accessed the site %s\n", bots, onDay)
 	}
 	if noFlags || dayFlag {
-		str += fmt.Sprintf("Found %d users who accessed the site %s\n", totalViews, onDay)
+		str += fmt.Sprintf("Found %d unique users who accessed the site %s\n", users, onDay)
 	}
 
 	return str, nil
+}
+
+func getAllResults(file *os.File, botFlag bool, detailedFlag bool, verboseFlag bool, dayFlag bool, day string) (string, error) {
+	infoMap := info.InfoMap{
+		All: make(map[string]info.Info),
+	}
+	scanner := bufio.NewScanner(file)
+	bots := 0
+	totalAccesses := 0
+	users := 0
+	clientErrors := 0
+	str := ""
+	noFlags := !botFlag && !dayFlag && !detailedFlag
+	line := ""
+
+	for scanner.Scan() {
+		v, err := info.GetLogInfo(infoMap, scanner.Text(), day)
+		if err != nil {
+			return "", err
+		}
+
+		if v.IP == "0" {
+			continue
+		}
+
+		if v.IsBot {
+			bots++
+			line = v.String()
+			if verboseFlag && (botFlag || detailedFlag) && line != "" {
+				fmt.Println(line)
+			}
+		}
+		if v.IsUser {
+			users++
+			line = v.String()
+			if verboseFlag && (noFlags || detailedFlag || dayFlag) && line != "" {
+				fmt.Println(line)
+			}
+		}
+		if v.IsClientError {
+			clientErrors++
+			line = v.String()
+			if verboseFlag && (detailedFlag || dayFlag) && line != "" {
+				fmt.Println(line)
+			}
+		}
+		totalAccesses++
+	}
+
+	if verboseFlag {
+		str += "\n"
+	}
+
+	if detailedFlag {
+		str += fmt.Sprintf("Detailed Information\n")
+		str += fmt.Sprintf("Number of unique bots: %d\n", bots)
+		str += fmt.Sprintf("Number of unique users: %d\n", users)
+		str += fmt.Sprintf("Number of unique user error requests: %d\n", clientErrors)
+		str += fmt.Sprintf("Total number of unique accesses: %d\n", totalAccesses)
+		return str, nil
+	}
+	if botFlag {
+		str += fmt.Sprintf("Found %d unique bots which accessed the site %s\n", bots)
+	}
+	if noFlags || dayFlag {
+		str += fmt.Sprintf("Found %d unique users who accessed the site %s\n", users)
+	}
+
+	return str, nil
+}
+
+func readLog(file *os.File, botFlag bool, detailedFlag bool, verboseFlag bool, dayFlag bool, day string) (string, error) {
+	if dayFlag {
+		str, err := getResultsFromDay(file, botFlag, detailedFlag, verboseFlag, dayFlag, day)
+		if err != nil {
+			return str, err
+		}
+		return str, nil
+
+	} else {
+		str, err := getAllResults(file, botFlag, detailedFlag, verboseFlag, dayFlag, day)
+		if err != nil {
+			return str, err
+		}
+		return str, nil
+	}
+
 }
 
 func printCommandsInfo() {
@@ -118,8 +187,6 @@ func printCommandsInfo() {
 		"\t-bots,\t\tDisplay the number of bots which accessed the website\n",
 		"\t-day,\t\tDisplay the number of users who accessed the website on <dd/mm/yyyy>\n",
 		"\t-detailed,\tDisplay more detailed information\n",
-		"\t-new,\t\tDisplay the number of new users who accessed the website\n",
-		"\t-old,\t\tDisplay the number of users who had already accessed the website\n",
 		"\t-verbose,\tDisplay information about each line of the log\n",
 		"\t-h,\t\tDisplay this help and exit\n",
 		"EXAMPLE\n",
@@ -135,8 +202,6 @@ func main() {
 	dateRegex := regexp.MustCompile(`[0-9]{2}/[0-9]{2}/[0-9]{4}`)
 	botFlag := false
 	detailedFlag := false
-	newFlag := false
-	oldFlag := false
 	verboseFlag := false
 	dayFlag := false
 	day := ""
@@ -165,10 +230,6 @@ func main() {
 			botFlag = true
 		case "-detailed":
 			detailedFlag = true
-		case "-old":
-			oldFlag = true
-		case "-new":
-			newFlag = true
 		case "-verbose":
 			verboseFlag = true
 		default:
@@ -189,7 +250,7 @@ func main() {
 		return
 	}
 
-	str, err := readLog(file, newFlag, oldFlag, botFlag, detailedFlag, verboseFlag, dayFlag, day)
+	str, err := readLog(file, botFlag, detailedFlag, verboseFlag, dayFlag, day)
 
 	if err != nil {
 		fmt.Printf("Error: Couldn't read log %s: %v\n", filepath, err)

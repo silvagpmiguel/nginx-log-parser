@@ -21,45 +21,83 @@ type Info struct {
 	IP            string
 	Date          time.Time
 	IsBot         bool
-	IsNewUser     bool
+	IsUser        bool
 	IsClientError bool
 }
 
 // InfoMap represents an map with IP as key and Info as value
-type InfoMap map[string]Info
+type InfoMap struct {
+	All map[string]Info
+	Day map[string]Info
+}
 
 // GetLogInfo parses the content of the log
-func GetLogInfo(infoMap InfoMap, str string) (Info, error) {
-	info := Info{IP: "0", IsBot: false, IsNewUser: false, IsClientError: false}
-
+func GetLogInfo(infoMap InfoMap, str string, day string) (Info, error) {
+	info := Info{IP: "0", IsBot: false, IsUser: false, IsClientError: false}
 	aux := strings.SplitN(str, " ", 2)
 	ip := aux[0]
-	_, ok := infoMap[ip]
+	botFlag := false
+	clientError := false
+	layout := ""
+	timeDay := time.Now()
+	d := 0
+	m := 0
+	y := 0
 
-	if !ok && (strings.Contains(aux[0], ".") || strings.Contains(aux[0], ":")) {
-		maybeDate := DateRegex.FindString(aux[1])
+	maybeDate := DateRegex.FindString(aux[1])
 
-		if maybeDate != "" {
-			date, err := CreateDate(maybeDate)
+	if maybeDate != "" {
+		date, err := CreateDate(maybeDate)
 
-			if err != nil {
-				return info, err
+		if err != nil {
+			return info, err
+		}
+
+		botFlag = strings.Contains(aux[1], "wp-admin")
+		clientError = strings.Contains(aux[1], "HTTP/1.1\" 4")
+		userFlag := strings.Contains(aux[1], "assets")
+
+		if !botFlag && !userFlag && !clientError {
+			return info, nil
+		}
+
+		info = Info{
+			IP:            ip,
+			Date:          date,
+			IsBot:         botFlag,
+			IsUser:        userFlag,
+			IsClientError: clientError,
+		}
+
+		if day != "" {
+			layout = "02/01/2006"
+			timeDay, _ = time.Parse(layout, day)
+			d = timeDay.Day()
+			m = int(timeDay.Month())
+			y = timeDay.Year()
+
+			if date.Day() < d && m <= int(date.Month()) && y <= date.Year() {
+				_, ok := infoMap.All[ip]
+
+				if ok {
+					return info, nil
+				}
+
+				infoMap.All[ip] = info
+			} else if date.Day() == d && m == int(date.Month()) && y == date.Year() {
+				_, ok := infoMap.Day[ip]
+
+				if ok {
+					return info, nil
+				}
+
+				infoMap.Day[ip] = info
+			} else {
+				return info, nil
 			}
-
-			botFlag := strings.Contains(aux[1], "wp-admin")
-			newFlag := strings.Contains(aux[1], "HTTP/1.1\" 200")
-			clientError := strings.Contains(aux[1], "HTTP/1.1\" 4")
-			info = Info{
-				IP:            ip,
-				Date:          date,
-				IsBot:         botFlag,
-				IsNewUser:     newFlag,
-				IsClientError: clientError,
-			}
-
-			infoMap[ip] = info
 		}
 	}
+
 	return info, nil
 }
 
@@ -78,16 +116,15 @@ func (i Info) String() string {
 
 	if i.IsBot {
 		str += i.Date.String() + ": Found a bot -> " + i.IP
-	} else {
-		if i.IsNewUser {
-			str += i.Date.String() + ": Found a new user -> " + i.IP
-		} else {
-			if i.IsClientError {
-				str += i.Date.String() + ": Found a client error request -> " + i.IP
-			} else {
-				str += i.Date.String() + ": Found a user who had already accessed this site -> " + i.IP
-			}
-		}
 	}
+	if i.IsUser {
+		str += i.Date.String() + ": Found a user -> " + i.IP
+	}
+	if i.IsClientError {
+		str += i.Date.String() + ": Found a client error request -> " + i.IP
+	}
+	/**if !i.IsBot && !i.IsUser && !i.IsClientError {
+		str += i.Date.String() + ": Nothing -> " + i.IP
+	}*/
 	return str
 }
