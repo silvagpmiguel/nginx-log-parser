@@ -54,14 +54,14 @@ func GetInfoAtDay(infoMap InfoMap, str string, day string) (Info, error) {
 		return none, err
 	}
 
+	if info.IP == "0" {
+		return none, nil
+	}
+
 	if CompareDayOrMonth(info.Date.Day, d) < 0 && CompareDayOrMonth(info.Date.Month, m) <= 0 && CompareYear(info.Date.Year, y) <= 0 {
 		_, ok := infoMap.All[ip]
 
 		if ok {
-			return none, nil
-		}
-
-		if info.IP == "0" {
 			return none, nil
 		}
 
@@ -71,10 +71,6 @@ func GetInfoAtDay(infoMap InfoMap, str string, day string) (Info, error) {
 		_, ok := infoMap.Day[ip]
 
 		if ok {
-			return none, nil
-		}
-
-		if info.IP == "0" {
 			return none, nil
 		}
 
