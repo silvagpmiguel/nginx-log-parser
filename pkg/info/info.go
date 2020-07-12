@@ -1,6 +1,7 @@
 package info
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -113,7 +114,11 @@ func GetAllInfo(allMap map[string]Info, str string) (Info, error) {
 // CreateInfo returns a Info type or error
 func CreateInfo(ip string, str string, maybeDate string) (Info, error) {
 	info := Info{IP: "0", IsBot: false, IsUser: false, IsClientError: false}
-	const dateSize = 28
+	const dateSize = 23
+
+	if len(maybeDate) < dateSize {
+		return info, fmt.Errorf("Invalid date")
+	}
 
 	date := LogDate{
 		Day:      [2]byte{maybeDate[1], maybeDate[2]},
@@ -194,7 +199,7 @@ func CompareDayOrMonth(fst [2]byte, snd [2]byte) int {
 func CompareYear(fst [4]byte, snd [4]byte) int {
 	ret := 0
 
-	for i := 3; i >= 0; i-- {
+	for i := 0; i < 4; i++ {
 		if fst[i] > snd[i] {
 			ret = 1
 			break
