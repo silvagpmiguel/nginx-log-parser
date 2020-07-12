@@ -7,7 +7,7 @@ This project is used to parse logs from nginx, in order to obtain information ab
 
 ## Install & Build & Run
 
-**Install**: `go install github.com/silvagpmiguel/nginx-log-parser/cmd/nginx-log-parser`
+**Install**: `go get github.com/silvagpmiguel/nginx-log-parser/cmd/nginx-log-parser`
 
 **Build**: `go build ./cmd/...`
 
