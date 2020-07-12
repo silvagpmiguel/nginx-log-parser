@@ -1,6 +1,6 @@
 # nginx-log-parser
 
-This project is used to parse logs from nginx, in order to obtain information about the accesses of a website.
+This project is used to parse a given website access log from nginx, in order to obtain more information about the accesses of the website.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/silvagpmiguel/nginx-log-parser)](https://goreportcard.com/report/github.com/silvagpmiguel/nginx-log-parser)
 [![GoDoc](https://godoc.org/github.com/silvagpmiguel/nginx-log-parser?status.svg)](https://godoc.org/github.com/silvagpmiguel/nginx-log-parser)
