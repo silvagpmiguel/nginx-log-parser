@@ -225,8 +225,5 @@ func (i Info) String() string {
 	if i.IsClientError {
 		str += i.Date.DateTime + ": Found a client error request -> " + i.IP
 	}
-	/**if !i.IsBot && !i.IsUser && !i.IsClientError {
-		str += i.Date.String() + ": Nothing -> " + i.IP
-	}*/
 	return str
 }
