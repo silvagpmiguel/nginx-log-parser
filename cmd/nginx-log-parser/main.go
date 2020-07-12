@@ -11,8 +11,6 @@ import (
 )
 
 func getResultsFromDay(file *os.File, botFlag bool, detailedFlag bool, verboseFlag bool, dayFlag bool, day string) (string, error) {
-	fmt.Println("ALL RESULTS FROM DAY")
-
 	infoMap := info.InfoMap{
 		All: make(map[string]info.Info),
 		Day: make(map[string]info.Info),
@@ -103,7 +101,6 @@ func getAllResults(file *os.File, botFlag bool, detailedFlag bool, verboseFlag b
 	noFlags := !botFlag && !dayFlag && !detailedFlag
 	line := ""
 
-	fmt.Println("ALL RESULTS")
 	for scanner.Scan() {
 		v, err := info.GetAllInfo(infoMap, scanner.Text())
 		if err != nil {
@@ -151,10 +148,10 @@ func getAllResults(file *os.File, botFlag bool, detailedFlag bool, verboseFlag b
 		return str, nil
 	}
 	if botFlag {
-		str += fmt.Sprintf("Found %d unique bots which accessed the site %s\n", bots)
+		str += fmt.Sprintf("Found %d unique bots which accessed the site\n", bots)
 	}
 	if noFlags || dayFlag {
-		str += fmt.Sprintf("Found %d unique users who accessed the site %s\n", users)
+		str += fmt.Sprintf("Found %d unique users who accessed the site\n", users)
 	}
 
 	return str, nil
