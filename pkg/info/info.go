@@ -210,15 +210,13 @@ func (i Info) String() string {
 	if i.IP == "0" {
 		return str
 	}
-
 	if i.IsBot {
 		str += i.Date.DateTime + ": Found a bot -> " + i.IP
-	}
-	if i.IsUser {
+	} else if i.IsUser {
 		str += i.Date.DateTime + ": Found a user -> " + i.IP
-	}
-	if i.IsClientError {
+	} else if i.IsClientError {
 		str += i.Date.DateTime + ": Found a client error request -> " + i.IP
 	}
+
 	return str
 }
