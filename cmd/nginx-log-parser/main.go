@@ -51,20 +51,17 @@ func getResultsFromDate(file *os.File, botFlag bool, detailedFlag bool, verboseF
 	}
 
 	for _, v := range infoMap.FromDate {
-		if v.IP == "0" {
-			continue
-		}
 
 		if v.IsBot {
 			bots++
 			line = v.String()
-			if verboseFlag && line != "" {
+			if verboseFlag {
 				fmt.Println(line)
 			}
 		}
 		if v.IsUser {
 			line = v.String()
-			if verboseFlag && line != "" {
+			if verboseFlag {
 				fmt.Println(line)
 			}
 			_, ok := infoMap.All[v.IP]
@@ -77,7 +74,7 @@ func getResultsFromDate(file *os.File, botFlag bool, detailedFlag bool, verboseF
 		if v.IsClientError {
 			clientErrors++
 			line = v.String()
-			if verboseFlag && line != "" {
+			if verboseFlag {
 				fmt.Println(line)
 			}
 		}
