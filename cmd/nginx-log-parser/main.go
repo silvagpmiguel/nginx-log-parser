@@ -10,10 +10,10 @@ import (
 	"github.com/silvagpmiguel/nginx-log-parser/pkg/info"
 )
 
-func getResultsFromDay(file *os.File, botFlag bool, detailedFlag bool, verboseFlag bool, dayFlag bool, day string) (string, error) {
-	infoMap := info.InfoMap{
-		All: make(map[string]info.Info),
-		Day: make(map[string]info.Info),
+func getResultsFromDate(file *os.File, botFlag bool, detailedFlag bool, verboseFlag bool, day string, month string, year string) (string, error) {
+	infoMap := info.Data{
+		All:      make(map[string]info.Info),
+		FromDate: make(map[string]info.Info),
 	}
 	scanner := bufio.NewScanner(file)
 	bots := 0
@@ -21,19 +21,36 @@ func getResultsFromDay(file *os.File, botFlag bool, detailedFlag bool, verboseFl
 	users := 0
 	clientErrors := 0
 	str := ""
+	dayFlag := day != ""
+	monthFlag := month != ""
+	yearFlag := year != ""
 	existingUsers := 0
-	noFlags := !botFlag && !dayFlag && !detailedFlag
+	noFlags := !botFlag && !detailedFlag
 	line := ""
-	onDay := "on " + day
-
+	onDate := ""
 	for scanner.Scan() {
-		_, err := info.GetInfoAtDay(infoMap, scanner.Text(), day)
-		if err != nil {
-			return "", err
+		if dayFlag {
+			_, err := info.GetInfoAtDay(infoMap, scanner.Text(), day)
+			if err != nil {
+				return "", err
+			}
+			onDate = "on " + day
+		} else if monthFlag {
+			_, err := info.GetInfoAtMonth(infoMap, scanner.Text(), month)
+			if err != nil {
+				return "", err
+			}
+			onDate = "on " + month
+		} else if yearFlag {
+			_, err := info.GetInfoAtYear(infoMap, scanner.Text(), year)
+			if err != nil {
+				return "", err
+			}
+			onDate = "on " + year
 		}
 	}
 
-	for _, v := range infoMap.Day {
+	for _, v := range infoMap.FromDate {
 		if v.IP == "0" {
 			continue
 		}
@@ -41,13 +58,13 @@ func getResultsFromDay(file *os.File, botFlag bool, detailedFlag bool, verboseFl
 		if v.IsBot {
 			bots++
 			line = v.String()
-			if verboseFlag && (botFlag || detailedFlag) && line != "" {
+			if verboseFlag && line != "" {
 				fmt.Println(line)
 			}
 		}
 		if v.IsUser {
 			line = v.String()
-			if verboseFlag && (noFlags || detailedFlag || dayFlag) && line != "" {
+			if verboseFlag && line != "" {
 				fmt.Println(line)
 			}
 			_, ok := infoMap.All[v.IP]
@@ -60,7 +77,7 @@ func getResultsFromDay(file *os.File, botFlag bool, detailedFlag bool, verboseFl
 		if v.IsClientError {
 			clientErrors++
 			line = v.String()
-			if verboseFlag && (detailedFlag || dayFlag) && line != "" {
+			if verboseFlag && line != "" {
 				fmt.Println(line)
 			}
 		}
@@ -72,7 +89,7 @@ func getResultsFromDay(file *os.File, botFlag bool, detailedFlag bool, verboseFl
 	}
 
 	if detailedFlag {
-		str += fmt.Sprintf("Detailed Information %s\n", onDay)
+		str += fmt.Sprintf("Detailed Information %s\n", onDate)
 		str += fmt.Sprintf("Number of unique bots: %d\n", bots)
 		str += fmt.Sprintf("Number of new unique users: %d\n", users)
 		str += fmt.Sprintf("Number of unique users who already had accessed the site: %d\n", existingUsers)
@@ -81,16 +98,16 @@ func getResultsFromDay(file *os.File, botFlag bool, detailedFlag bool, verboseFl
 		return str, nil
 	}
 	if botFlag {
-		str += fmt.Sprintf("Found %d unique bots which accessed the site %s\n", bots, onDay)
+		str += fmt.Sprintf("Found %d unique bots which accessed the site %s\n", bots, onDate)
 	}
-	if noFlags || dayFlag {
-		str += fmt.Sprintf("Found %d unique users who accessed the site %s\n", users, onDay)
+	if noFlags {
+		str += fmt.Sprintf("Found %d unique users who accessed the site %s\n", users, onDate)
 	}
 
 	return str, nil
 }
 
-func getAllResults(file *os.File, botFlag bool, detailedFlag bool, verboseFlag bool, dayFlag bool, day string) (string, error) {
+func getAllResults(file *os.File, botFlag bool, detailedFlag bool, verboseFlag bool) (string, error) {
 	infoMap := make(map[string]info.Info)
 	scanner := bufio.NewScanner(file)
 	bots := 0
@@ -98,7 +115,7 @@ func getAllResults(file *os.File, botFlag bool, detailedFlag bool, verboseFlag b
 	users := 0
 	clientErrors := 0
 	str := ""
-	noFlags := !botFlag && !dayFlag && !detailedFlag
+	noFlags := !botFlag && !detailedFlag
 	line := ""
 
 	for scanner.Scan() {
@@ -114,21 +131,21 @@ func getAllResults(file *os.File, botFlag bool, detailedFlag bool, verboseFlag b
 		if v.IsBot {
 			bots++
 			line = v.String()
-			if verboseFlag && (botFlag || detailedFlag) && line != "" {
+			if verboseFlag && line != "" {
 				fmt.Println(line)
 			}
 		}
 		if v.IsUser {
 			users++
 			line = v.String()
-			if verboseFlag && (noFlags || detailedFlag || dayFlag) && line != "" {
+			if verboseFlag && line != "" {
 				fmt.Println(line)
 			}
 		}
 		if v.IsClientError {
 			clientErrors++
 			line = v.String()
-			if verboseFlag && (detailedFlag || dayFlag) && line != "" {
+			if verboseFlag && line != "" {
 				fmt.Println(line)
 			}
 		}
@@ -150,23 +167,23 @@ func getAllResults(file *os.File, botFlag bool, detailedFlag bool, verboseFlag b
 	if botFlag {
 		str += fmt.Sprintf("Found %d unique bots which accessed the site\n", bots)
 	}
-	if noFlags || dayFlag {
+	if noFlags {
 		str += fmt.Sprintf("Found %d unique users who accessed the site\n", users)
 	}
 
 	return str, nil
 }
 
-func readLog(file *os.File, botFlag bool, detailedFlag bool, verboseFlag bool, dayFlag bool, day string) (string, error) {
-	if dayFlag {
-		str, err := getResultsFromDay(file, botFlag, detailedFlag, verboseFlag, dayFlag, day)
+func readLog(file *os.File, botFlag bool, detailedFlag bool, verboseFlag bool, day string, month string, year string) (string, error) {
+	if day != "" || month != "" || year != "" {
+		str, err := getResultsFromDate(file, botFlag, detailedFlag, verboseFlag, day, month, year)
 		if err != nil {
 			return str, err
 		}
 		return str, nil
 	}
 
-	str, err := getAllResults(file, botFlag, detailedFlag, verboseFlag, dayFlag, day)
+	str, err := getAllResults(file, botFlag, detailedFlag, verboseFlag)
 	if err != nil {
 		return str, err
 	}
@@ -182,6 +199,8 @@ func printCommandsInfo() {
 		"OPTIONS\n",
 		"\t-bots,\t\tDisplay the number of bots which accessed the website\n",
 		"\t-day,\t\tDisplay the number of users who accessed the website on <dd/mm/yyyy>\n",
+		"\t-month,\t\tDisplay the number of users who accessed the website on <mm/yyyy>\n",
+		"\t-year,\t\tDisplay the number of users who accessed the website on <yyyy>\n",
 		"\t-detailed,\tDisplay more detailed information\n",
 		"\t-verbose,\tDisplay information about each line of the log\n",
 		"\t-h,\t\tDisplay this help and exit\n",
@@ -195,12 +214,15 @@ func printCommandsInfo() {
 func main() {
 	filepath := ""
 	argsLen := len(os.Args)
-	dateRegex := regexp.MustCompile(`[0-9]{2}/[0-9]{2}/[0-9]{4}`)
+	dayRegex := regexp.MustCompile(`(3[0-1]|[1-2][0-9]|0[1-9])/(1[0-2]|0[1-9])/[0-9]{4}`)
+	monthRegex := regexp.MustCompile(`1[0-2]|0[1-9]/[0-9]{4}`)
+	yearRegex := regexp.MustCompile(`[0-9]{4}`)
 	botFlag := false
 	detailedFlag := false
 	verboseFlag := false
-	dayFlag := false
 	day := ""
+	month := ""
+	year := ""
 
 	if argsLen == 1 {
 		fmt.Println("Error. No arguments found\nWrite \"./nginx-log-parser -h\" to display the help")
@@ -214,12 +236,29 @@ func main() {
 			return
 		case "-day":
 			if i+1 < argsLen {
-				if !dateRegex.MatchString(os.Args[i+1]) {
+				if !dayRegex.MatchString(os.Args[i+1]) {
 					fmt.Println("Error. Insert a valid date <dd/mm/yyyy>")
 					return
 				}
-				dayFlag = true
 				day = os.Args[i+1]
+				i++
+			}
+		case "-month":
+			if i+1 < argsLen {
+				if !monthRegex.MatchString(os.Args[i+1]) {
+					fmt.Println("Error. Insert a valid date <mm/yyyy>")
+					return
+				}
+				month = os.Args[i+1]
+				i++
+			}
+		case "-year":
+			if i+1 < argsLen {
+				if !yearRegex.MatchString(os.Args[i+1]) {
+					fmt.Println("Error. Insert a valid date <yyyy>")
+					return
+				}
+				year = os.Args[i+1]
 				i++
 			}
 		case "-bots":
@@ -246,7 +285,7 @@ func main() {
 		return
 	}
 
-	str, err := readLog(file, botFlag, detailedFlag, verboseFlag, dayFlag, day)
+	str, err := readLog(file, botFlag, detailedFlag, verboseFlag, day, month, year)
 
 	if err != nil {
 		fmt.Printf("Error: Couldn't read log %s: %v\n", filepath, err)
